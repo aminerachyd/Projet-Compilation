@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 
 // Déclaration des classes lexicales
 typedef enum {
@@ -41,15 +42,94 @@ typedef struct {
 } TSym_Cour;
 // Caractère courant, lit le fichier
 char Car_Cour;
+TSym_Cour Sym_Cour;
+FILE *fp;
+
+// Vérification si Car_Cour est une lettre
+int Car_is_letter() {
+    return (Car_Cour < 91 && Car_Cour > 64) || (Car_Cour > 96 && Car_Cour < 122);
+}
+
+// Vérification si Car_Cour est un nombre
+int Car_is_number() {
+    return Car_Cour > 47 && Car_Cour < 58;
+}
+
+// Vérification si Car_Cour est un caractère spécial ( et pas seulement ceux que doit comprendre le compilateur )
+int Car_is_special() {
+    return Car_Cour > 32 && Car_Cour < 127 && !Car_is_letter() && !Car_is_number();
+}
 
 // Méthodes pour la lecture de chaque symbole
-
 void Lire_nombre() {
 
 }
 
 void Lire_mot() {
+    // On remplit le nom du mot
+    for (int i = 0; i < 20; i++) {
+        Sym_Cour.NOM[i] = Car_Cour;
+        // Passage au prochain caractère
+        Car_Cour = fgetc(fp);
+        if (Car_Cour < 33) {
+            break;
+        }
+    }
+    if (!strcmp(Sym_Cour.NOM, "program")) {
+        Sym_Cour.CODE = PROGRAM_TOKEN;
+        return;
+    }
+    if (!strcmp(Sym_Cour.NOM, "const")) {
+        Sym_Cour.CODE = CONST_TOKEN;
+        return;
 
+    }
+    if (!strcmp(Sym_Cour.NOM, "var")) {
+        Sym_Cour.CODE = VAR_TOKEN;
+        return;
+
+    }
+    if (!strcmp(Sym_Cour.NOM, "begin")) {
+        Sym_Cour.CODE = BEGIN_TOKEN;
+        return;
+
+    }
+    if (!strcmp(Sym_Cour.NOM, "end")) {
+        Sym_Cour.CODE = END_TOKEN;
+        return;
+
+    }
+    if (!strcmp(Sym_Cour.NOM, "if")) {
+        Sym_Cour.CODE = IF_TOKEN;
+        return;
+
+    }
+    if (!strcmp(Sym_Cour.NOM, "then")) {
+        Sym_Cour.CODE = THEN_TOKEN;
+        return;
+
+    }
+    if (!strcmp(Sym_Cour.NOM, "while")) {
+        Sym_Cour.CODE = WHILE_TOKEN;
+        return;
+
+    }
+    if (!strcmp(Sym_Cour.NOM, "do")) {
+        Sym_Cour.CODE = DO_TOKEN;
+        return;
+
+    }
+    if (!strcmp(Sym_Cour.NOM, "read")) {
+        Sym_Cour.CODE = READ_TOKEN;
+        return;
+
+    }
+    if (!strcmp(Sym_Cour.NOM, "write")) {
+        Sym_Cour.CODE = WRITE_TOKEN;
+        return;
+
+    }
+    Sym_Cour.CODE = ID_TOKEN;
 }
 
 void Lire_chaine() {
@@ -64,30 +144,51 @@ void Lire_errone() {
 
 }
 
-void Ouvrir_Fichier(char PATH[50]){
-    FILE *fp = fopen("pascal.p", "r");
+void Lire_Caractere() {
+    // Test si le fichier n'existe pas
+    if (fp == NULL) {
+        printf("File not found");
+        return;
+    }
+    Car_Cour = fgetc(fp);
+}
+
+
+void Sym_Suiv() {
+    // Test si le caractère n'est pas un séparateur
+    if (Car_Cour > 32) {
+        // Si le caractère est une lettre
+        if (Car_is_letter()) {
+            Lire_mot();
+        }
+        if (Car_is_number()) {
+            Lire_nombre();
+        }
+        if (Car_is_special()) {
+            Lire_special();
+        }
+    } else {
+        Car_Cour = fgetc(fp);
+        memset(Sym_Cour.NOM,0,20);
+        return;
+    }
+}
+
+void AfficherToken(TSym_Cour sym_cour) {
+    printf("%d", sym_cour.CODE);
+}
+
+void Ouvrir_Fichier(char PATH[50]) {
+    // Le fichier à lire, on met le code pascal dedans
+    fp = fopen(PATH, "r");
 }
 
 int main() {
-    // Le fichier à lire, on met le code pascal dedans
-    FILE *fp = fopen("pascal.p", "r");
-
-    // Test si le fichier n'existe pas
-    if (fp == NULL) {
-        printf("Not found");
-        return 0;
+    Ouvrir_Fichier("pascal.p");
+    Lire_Caractere();
+    while (Car_Cour != EOF) {
+        Sym_Suiv();
+        AfficherToken(Sym_Cour);
     }
-
-    // Le fichier existe, on procède par sa lecture
-    do {
-        // Lecture d'un caractère du fichier
-        Car_Cour = fgetc(fp);
-
-        // Vérification si on a ateint la fin du fichier
-        if (feof(fp))
-            break;
-        if (Car_Cour>31) // Test si le caractère n'est pas un séparateur
-            printf("%c\n", Car_Cour);
-    } while (1);
     return 0;
 }
