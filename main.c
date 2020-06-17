@@ -24,6 +24,7 @@ typedef enum {
     DIV_TOKEN,
     VIR_TOKEN,
     AFF_TOKEN,
+    EG_TOKEN,
     INF_TOKEN,
     INFEG_TOKEN,
     SUP_TOKEN,
@@ -31,8 +32,9 @@ typedef enum {
     DIFF_TOKEN,
     PO_TOKEN,
     PF_TOKEN,
-    FIN_TOKEN,
-    ERREUR_TOKEN
+    EOF_TOKEN,
+    ERREUR_TOKEN,
+    NULL_TOKEN
 } CODES_LEX;
 
 // Ce tableau sert uniquement à donner un équivalent en string des enumérations en haut
@@ -59,6 +61,7 @@ const char *enumName[] = {
         "DIV_TOKEN",
         "VIR_TOKEN",
         "AFF_TOKEN",
+        "EG_TOKEN",
         "INF_TOKEN",
         "INFEG_TOKEN",
         "SUP_TOKEN",
@@ -66,7 +69,7 @@ const char *enumName[] = {
         "DIFF_TOKEN",
         "PO_TOKEN",
         "PF_TOKEN",
-        "FIN_TOKEN",
+        "EOF_TOKEN",
         "ERREUR_TOKEN"
 };
 
@@ -97,16 +100,32 @@ int Car_is_special() {
 
 // Méthodes pour la lecture de chaque symbole
 void Lire_nombre() {
-
+    memset(Sym_Cour.NOM, 0, 20);
+    Sym_Cour.CODE = NULL_TOKEN;
+    // On remplit le nom du numero
+    for (int i = 0; i < 20; i++) {
+        Sym_Cour.NOM[i] = Car_Cour;
+        // Passage au prochain caractère
+        Car_Cour = fgetc(fp);
+        if (Car_Cour < 33 || !Car_is_number()) { // TODO traiter le cas de la virgule
+            // Si le caractère n'est pas un nombre, on s'arrete
+            break;
+        }
+    }
+    Sym_Cour.CODE = NUM_TOKEN;
+    return;
 }
 
 void Lire_mot() {
+    memset(Sym_Cour.NOM, 0, 20);
+    Sym_Cour.CODE = NULL_TOKEN;
     // On remplit le nom du mot
     for (int i = 0; i < 20; i++) {
         Sym_Cour.NOM[i] = Car_Cour;
         // Passage au prochain caractère
         Car_Cour = fgetc(fp);
-        if (Car_Cour < 33) {
+        if (Car_Cour < 33 || Car_is_special()) {
+            // Si le caractère est un séparateur, on s'arrete
             break;
         }
     }
@@ -172,7 +191,85 @@ void Lire_chaine() {
 }
 
 void Lire_special() {
+    memset(Sym_Cour.NOM, 0, 20);
+    Sym_Cour.CODE = NULL_TOKEN;
+    // On remplit le nom du spécial
+    for (int i = 0; i < 20; i++) {
+        Sym_Cour.NOM[i] = Car_Cour;
+        // Passage au prochain caractère
+        Car_Cour = fgetc(fp);
 
+        if (!strcmp(Sym_Cour.NOM, "(")) {
+            Sym_Cour.CODE = PO_TOKEN;
+            return;
+        }
+        if (!strcmp(Sym_Cour.NOM, ")")) {
+            Sym_Cour.CODE = PF_TOKEN;
+            return;
+        }
+
+        if (Car_Cour < 33 || !Car_is_special()) {
+            // Si le caractère n'est pas un spécial, on s'arrete
+            break;
+        }
+    }
+
+    if (!strcmp(Sym_Cour.NOM, ";")) {
+        Sym_Cour.CODE = PV_TOKEN;
+        return;
+    }
+    if (!strcmp(Sym_Cour.NOM, ".")) {
+        Sym_Cour.CODE = PT_TOKEN;
+        return;
+    }
+    if (!strcmp(Sym_Cour.NOM, "+")) {
+        Sym_Cour.CODE = PLUS_TOKEN;
+        return;
+    }
+    if (!strcmp(Sym_Cour.NOM, "-")) {
+        Sym_Cour.CODE = MOINS_TOKEN;
+        return;
+    }
+    if (!strcmp(Sym_Cour.NOM, "*")) {
+        Sym_Cour.CODE = MULT_TOKEN;
+        return;
+    }
+    if (!strcmp(Sym_Cour.NOM, "/")) {
+        Sym_Cour.CODE = DIV_TOKEN;
+        return;
+    }
+    if (!strcmp(Sym_Cour.NOM, ",")) {
+        Sym_Cour.CODE = VIR_TOKEN;
+        return;
+    }
+    if (!strcmp(Sym_Cour.NOM, ":=")) {
+        Sym_Cour.CODE = AFF_TOKEN;
+        return;
+    }
+    if (!strcmp(Sym_Cour.NOM, "=")) {
+        Sym_Cour.CODE = EG_TOKEN;
+        return;
+    }
+    if (!strcmp(Sym_Cour.NOM, "<")) {
+        Sym_Cour.CODE = INF_TOKEN;
+        return;
+    }
+    if (!strcmp(Sym_Cour.NOM, "<=")) {
+        Sym_Cour.CODE = INFEG_TOKEN;
+        return;
+    }
+    if (!strcmp(Sym_Cour.NOM, ">")) {
+        Sym_Cour.CODE = SUP_TOKEN;
+        return;
+    }
+    if (!strcmp(Sym_Cour.NOM, ">=")) {
+        Sym_Cour.CODE = SUPEG_TOKEN;
+        return;
+    }
+    if (!strcmp(Sym_Cour.NOM, "<>")) {
+        Sym_Cour.CODE = DIFF_TOKEN;
+        return;
+    }
 }
 
 void Lire_errone() {
@@ -195,22 +292,29 @@ void Sym_Suiv() {
         // Si le caractère est une lettre
         if (Car_is_letter()) {
             Lire_mot();
+            return;
         }
         if (Car_is_number()) {
             Lire_nombre();
+            return;
         }
         if (Car_is_special()) {
             Lire_special();
+            return;
         }
     } else {
         Car_Cour = fgetc(fp);
         memset(Sym_Cour.NOM, 0, 20);
+        Sym_Cour.CODE = NULL_TOKEN;
         return;
     }
 }
 
 void AfficherToken(TSym_Cour sym_cour) {
-    printf("%s\n", enumName[sym_cour.CODE]);
+    if (sym_cour.CODE != NULL_TOKEN)
+        printf("%s\n", enumName[sym_cour.CODE]);
+    if(Car_Cour==EOF)
+        printf("%s\n",enumName[EOF_TOKEN]);
 }
 
 void Ouvrir_Fichier(char PATH[50]) {
