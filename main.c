@@ -35,6 +35,41 @@ typedef enum {
     ERREUR_TOKEN
 } CODES_LEX;
 
+// Ce tableau sert uniquement à donner un équivalent en string des enumérations en haut
+// Voir la fonction AfficherToken(sym_cour)
+const char *enumName[] = {
+        "ID_TOKEN",
+        "NUM_TOKEN",
+        "PROGRAM_TOKEN",
+        "CONST_TOKEN",
+        "VAR_TOKEN",
+        "BEGIN_TOKEN",
+        "END_TOKEN",
+        "IF_TOKEN",
+        "THEN_TOKEN",
+        "WHILE_TOKEN",
+        "DO_TOKEN",
+        "READ_TOKEN",
+        "WRITE_TOKEN",
+        "PV_TOKEN",
+        "PT_TOKEN",
+        "PLUS_TOKEN",
+        "MOINS_TOKEN",
+        "MULT_TOKEN",
+        "DIV_TOKEN",
+        "VIR_TOKEN",
+        "AFF_TOKEN",
+        "INF_TOKEN",
+        "INFEG_TOKEN",
+        "SUP_TOKEN",
+        "SUPEG_TOKEN",
+        "DIFF_TOKEN",
+        "PO_TOKEN",
+        "PF_TOKEN",
+        "FIN_TOKEN",
+        "ERREUR_TOKEN"
+};
+
 // Déclaration de la structure du symbole courant, contient le code du symbole ( TOKEN ) et le nom du symbole
 typedef struct {
     CODES_LEX CODE;
@@ -169,13 +204,13 @@ void Sym_Suiv() {
         }
     } else {
         Car_Cour = fgetc(fp);
-        memset(Sym_Cour.NOM,0,20);
+        memset(Sym_Cour.NOM, 0, 20);
         return;
     }
 }
 
 void AfficherToken(TSym_Cour sym_cour) {
-    printf("%d", sym_cour.CODE);
+    printf("%s\n", enumName[sym_cour.CODE]);
 }
 
 void Ouvrir_Fichier(char PATH[50]) {
