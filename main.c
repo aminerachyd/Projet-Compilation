@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 // Déclaration des classes lexicales
 typedef enum {
@@ -37,6 +38,103 @@ typedef enum {
     NULL_TOKEN
 } CODES_LEX;
 
+// Déclaration des erreurs
+typedef enum {
+    ID_ERR,
+    NUM_ERR,
+    PROGRAM_ERR,
+    CONST_ERR,
+    VAR_ERR,
+    BEGIN_ERR,
+    END_ERR,
+    IF_ERR,
+    THEN_ERR,
+    WHILE_ERR,
+    DO_ERR,
+    READ_ERR,
+    WRITE_ERR,
+    PV_ERR,
+    PT_ERR,
+    PLUS_ERR,
+    MOINS_ERR,
+    MULT_ERR,
+    DIV_ERR,
+    VIR_ERR,
+    AFF_ERR,
+    EG_ERR,
+    INF_ERR,
+    INFEG_ERR,
+    SUP_ERR,
+    SUPEG_ERR,
+    DIFF_ERR,
+    PO_ERR,
+    PF_ERR,
+    ERR_CAR_INC,
+    ERR_FICH_VID,
+    CONST_VAR_BEGIN_ERR,
+} ERREURS;
+
+// Déclaration de la structure d'une erreur
+typedef struct {
+    ERREURS CODE_ERR;
+    char mes[40]
+} Erreurs;
+
+// Déclaration de la structure du symbole courant, contient le code du symbole ( TOKEN ) et le nom du symbole
+typedef struct {
+    CODES_LEX CODE;
+    char NOM[20];
+} TSym_Cour;
+
+void CONSTS();
+
+void VARS();
+
+void EXPR();
+
+void AFFEC();
+
+void TANTQUE();
+
+void ECRIRE();
+
+void LIRE();
+
+void COND();
+
+void SI();
+
+void INST();
+
+void INSTS();
+
+void BLOCK();
+
+void PROGRAM();
+
+void RELOP();
+
+void ADDOP();
+
+void TERM();
+
+void MULOP();
+
+void FACT();
+
+void ID();
+
+void NUM();
+
+void Chiffre();
+
+void Lettre();
+
+// Tableau des erreurs
+Erreurs MES_ERR[100] = {{ERR_CAR_INC,  "caractère	inconnu"},
+                        {ERR_FICH_VID, "fichier	vide", "« IDF	très	long"}};
+
+// Tableau des enumérations
 // Ce tableau sert uniquement à donner un équivalent en string des enumérations en haut
 // Voir la fonction AfficherToken(sym_cour)
 const char *enumName[] = {
@@ -73,15 +171,16 @@ const char *enumName[] = {
         "ERREUR_TOKEN"
 };
 
-// Déclaration de la structure du symbole courant, contient le code du symbole ( TOKEN ) et le nom du symbole
-typedef struct {
-    CODES_LEX CODE;
-    char NOM[20];
-} TSym_Cour;
 // Caractère courant, lit le fichier
 char Car_Cour;
 TSym_Cour Sym_Cour;
 FILE *fp;
+
+void Erreur(ERREURS ERR) {
+    int ind_err = ERR;
+    printf("Erreur numéro %d \t	: %s \n", ind_err, MES_ERR[ind_err].mes);
+    exit(1);
+}
 
 // Vérification si Car_Cour est une lettre
 int Car_is_letter() {
@@ -270,6 +369,8 @@ void Lire_special() {
         Sym_Cour.CODE = DIFF_TOKEN;
         return;
     }
+    Sym_Cour.CODE = ERREUR_TOKEN;
+    return;
 }
 
 void Lire_errone() {
@@ -313,8 +414,8 @@ void Sym_Suiv() {
 void AfficherToken(TSym_Cour sym_cour) {
     if (sym_cour.CODE != NULL_TOKEN)
         printf("%s\n", enumName[sym_cour.CODE]);
-    if(Car_Cour==EOF)
-        printf("%s\n",enumName[EOF_TOKEN]);
+    if (Car_Cour == EOF)
+        printf("%s\n", enumName[EOF_TOKEN]);
 }
 
 void Ouvrir_Fichier(char PATH[50]) {
@@ -322,12 +423,211 @@ void Ouvrir_Fichier(char PATH[50]) {
     fp = fopen(PATH, "r");
 }
 
+// Fonction pour tester un symbole
+void Test_Symbole(CODES_LEX CODE, ERREURS CODE_ERR) {
+    if (Sym_Cour.CODE == CODE) {
+        Sym_Suiv();
+    } else
+        Erreur(CODE_ERR);
+}
+
+//---------------------------------------------
+// REGLES SYNTAXIQUES
+//---------------------------------------------
+void PROGRAM() {
+    Test_Symbole(PROGRAM_TOKEN, PROGRAM_ERR);
+    Test_Symbole(ID_TOKEN, ID_ERR);
+    Test_Symbole(PV_TOKEN, PV_ERR);
+    BLOCK();
+    Test_Symbole(PT_TOKEN, PT_ERR);
+}
+
+void BLOCK() {
+    CONSTS();
+    VARS();
+    INSTS();
+}
+
+void CONSTS() {
+    switch (Sym_Cour.CODE) {
+        case CONST_TOKEN:
+            Sym_Suiv();
+            Test_Symbole(ID_TOKEN, ID_ERR);
+            Test_Symbole(EG_TOKEN, EG_ERR);
+            Test_Symbole(NUM_TOKEN, NUM_ERR);
+            Test_Symbole(PV_TOKEN, PV_ERR);
+            while (Sym_Cour.CODE == ID_TOKEN) {
+                Sym_Suiv();
+                Test_Symbole(EG_TOKEN, EG_ERR);
+                Test_Symbole(NUM_TOKEN, NUM_ERR);
+                Test_Symbole(PV_TOKEN, PV_ERR);
+            };
+            break;
+        case VAR_TOKEN:
+            break;
+        case BEGIN_TOKEN:
+            break;
+        default:
+            Erreur(CONST_VAR_BEGIN_ERR);
+            break;
+    }
+}
+
+void VARS() {
+    Test_Symbole(VAR_TOKEN, VAR_ERR);
+    Test_Symbole(ID_TOKEN, ID_ERR);
+    while (Sym_Cour.CODE == VIR_TOKEN) {
+        Test_Symbole(ID_TOKEN, ID_ERR);
+    }
+    Test_Symbole(PV_TOKEN, PV_ERR);
+}
+
+void INSTS() {
+    Test_Symbole(BEGIN_TOKEN, BEGIN_ERR);
+    INST();
+    while (Sym_Cour.CODE == PV_TOKEN) {
+        INST();
+    }
+    Test_Symbole(END_TOKEN, END_ERR);
+}
+
+void INST() {   // TODO kifach tdir dak ORs, chi switch 3la SymCour.CODE
+    INSTS();
+    AFFEC();
+    SI();
+    TANTQUE();
+    ECRIRE();
+    LIRE();
+}
+
+void AFFEC() {
+    Test_Symbole(ID_TOKEN, ID_ERR);
+    Test_Symbole(AFF_TOKEN, AFF_TOKEN);
+    EXPR();
+}
+
+void SI() {
+    Test_Symbole(IF_TOKEN, IF_ERR);
+    COND();
+    Test_Symbole(THEN_TOKEN, THEN_ERR);
+    INST();
+}
+
+void TANTQUE() {
+    Test_Symbole(WHILE_TOKEN, WHILE_ERR);
+    COND();
+    Test_Symbole(DO_TOKEN, DO_TOKEN);
+    INST();
+}
+
+void ECRIRE() {
+    Test_Symbole(WRITE_TOKEN, WRITE_ERR);
+    Test_Symbole(PO_TOKEN, PO_ERR);
+    EXPR();
+    while (Sym_Cour.CODE == VIR_TOKEN) {
+        EXPR();
+    }
+    Test_Symbole(PF_TOKEN, PF_ERR);
+}
+
+void LIRE() {
+    Test_Symbole(READ_TOKEN, READ_TOKEN);
+    Test_Symbole(PO_TOKEN, PO_ERR);
+    ID();
+    while (Sym_Cour.CODE == VIR_TOKEN) {
+        ID();
+    }
+    Test_Symbole(PF_TOKEN, PF_ERR);
+}
+
+void COND() {
+    EXPR();
+    RELOP();
+    EXPR();
+}
+
+void RELOP() {  // TODO dak le OR b un switch sur SymCour.CODE
+    Test_Symbole(EG_TOKEN, EG_ERR);
+    Test_Symbole(DIFF_TOKEN, DIFF_ERR);
+    Test_Symbole(SUP_TOKEN, SUP_ERR);
+    Test_Symbole(INF_TOKEN, INF_ERR);
+    Test_Symbole(SUPEG_TOKEN, SUPEG_ERR);
+    Test_Symbole(INFEG_TOKEN, INFEG_ERR);
+}
+
+void EXPR() {   // TODO remplacer le 1 par une condition
+    TERM();
+    while(1){
+        ADDOP();
+        TERM();
+    }
+}
+
+void ADDOP() {  // TODO dak le OR b un switch
+    Test_Symbole(PLUS_TOKEN,PLUS_ERR);
+    Test_Symbole(MOINS_TOKEN,MOINS_ERR);
+}
+
+void TERM() { // TODO remplacer le 1 par une condition
+    FACT();
+    while(1){
+        MULOP();
+        FACT();
+    }
+}
+
+void MULOP() {
+    Test_Symbole(MULT_TOKEN,MULT_ERR);
+    Test_Symbole(DIV_TOKEN,DIV_ERR);
+}
+
+void FACT() {   // TODO dak le OR b un switch
+    ID();
+    NUM();
+
+    Test_Symbole(PO_TOKEN,PO_ERR);
+    EXPR();
+    Test_Symbole(PF_TOKEN,PF_ERR);
+}
+
+void ID() {
+    Lettre();
+
+    while(1){ // TODO remplacer 1 par une condition
+        // TODO Or -> switch
+        Lettre();
+        Chiffre();
+    }
+}
+
+void NUM() {
+    Chiffre();
+    while(1){ // TODO remplacer 1 par une condition
+        Chiffre();
+    }
+}
+
+void Chiffre() { // TODO pas sur ici
+    Test_Symbole(NUM_TOKEN,NUM_ERR);
+}
+
+void Lettre() { // TODO lettre ??
+
+}
+
 int main() {
     Ouvrir_Fichier("pascal.p");
+    /* Test de l'analyseur lexical
     Lire_Caractere();
     while (Car_Cour != EOF) {
         Sym_Suiv();
         AfficherToken(Sym_Cour);
-    }
+    }*/
+
+
+
+
+
+
     return 0;
 }
