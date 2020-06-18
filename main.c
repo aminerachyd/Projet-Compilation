@@ -72,6 +72,7 @@ typedef enum {
     ERR_CAR_INC,
     ERR_FICH_VID,
     CONST_VAR_BEGIN_ERR,
+    INST_BEGIN_ERR,
 } ERREURS;
 
 // Déclaration de la structure d'une erreur
@@ -174,6 +175,7 @@ const char *enumName[] = {
 // Caractère courant, lit le fichier
 char Car_Cour;
 TSym_Cour Sym_Cour;
+int Car_Cour_Sym;
 FILE *fp;
 
 void Erreur(ERREURS ERR) {
@@ -201,7 +203,7 @@ int Car_is_special() {
 void Lire_nombre() {
     memset(Sym_Cour.NOM, 0, 20);
     Sym_Cour.CODE = NULL_TOKEN;
-    // On remplit le nom du numero
+    // On remplit le nom du numero ( les caractères dans le numéro )
     for (int i = 0; i < 20; i++) {
         Sym_Cour.NOM[i] = Car_Cour;
         // Passage au prochain caractère
@@ -285,7 +287,7 @@ void Lire_mot() {
     Sym_Cour.CODE = ID_TOKEN;
 }
 
-void Lire_chaine() {
+void Lire_chaine() { // TODO not used
 
 }
 
@@ -373,7 +375,7 @@ void Lire_special() {
     return;
 }
 
-void Lire_errone() {
+void Lire_errone() { // TODO not used
 
 }
 
@@ -386,28 +388,34 @@ void Lire_Caractere() {
     Car_Cour = fgetc(fp);
 }
 
-
 void Sym_Suiv() {
-    // Test si le caractère n'est pas un séparateur
-    if (Car_Cour > 32) {
-        // Si le caractère est une lettre
-        if (Car_is_letter()) {
-            Lire_mot();
-            return;
+    Car_Cour_Sym = 0;
+    while (1) {
+        // Test si le caractère n'est pas un séparateur
+        if (Car_Cour > 32) {
+            // Si le caractère est une lettre
+            if (Car_is_letter()) {
+                Lire_mot();
+                return;
+            }
+            if (Car_is_number()) {
+                Lire_nombre();
+                return;
+            }
+            if (Car_is_special()) {
+                Lire_special();
+                return;
+            }
+        } else {
+            if (Car_Cour == EOF) {
+                memset(Sym_Cour.NOM, 0, 20);
+                Sym_Cour.CODE = EOF_TOKEN;
+                return;
+            }
+            Car_Cour = fgetc(fp);
+            memset(Sym_Cour.NOM, 0, 20);
+            Sym_Cour.CODE = NULL_TOKEN;
         }
-        if (Car_is_number()) {
-            Lire_nombre();
-            return;
-        }
-        if (Car_is_special()) {
-            Lire_special();
-            return;
-        }
-    } else {
-        Car_Cour = fgetc(fp);
-        memset(Sym_Cour.NOM, 0, 20);
-        Sym_Cour.CODE = NULL_TOKEN;
-        return;
     }
 }
 
@@ -477,6 +485,7 @@ void VARS() {
     Test_Symbole(VAR_TOKEN, VAR_ERR);
     Test_Symbole(ID_TOKEN, ID_ERR);
     while (Sym_Cour.CODE == VIR_TOKEN) {
+        Sym_Suiv();
         Test_Symbole(ID_TOKEN, ID_ERR);
     }
     Test_Symbole(PV_TOKEN, PV_ERR);
@@ -486,18 +495,38 @@ void INSTS() {
     Test_Symbole(BEGIN_TOKEN, BEGIN_ERR);
     INST();
     while (Sym_Cour.CODE == PV_TOKEN) {
+        Sym_Suiv();
         INST();
     }
     Test_Symbole(END_TOKEN, END_ERR);
 }
 
-void INST() {   // TODO kifach tdir dak ORs, chi switch 3la SymCour.CODE
-    INSTS();
-    AFFEC();
-    SI();
-    TANTQUE();
-    ECRIRE();
-    LIRE();
+void INST() {   // TODO A tester
+    switch (Sym_Cour.CODE) {
+        case BEGIN_TOKEN:
+            INSTS();
+            break;
+        case ID_TOKEN:
+            AFFEC();
+            break;
+        case IF_TOKEN:
+            SI();
+            break;
+        case WHILE_TOKEN:
+            TANTQUE();
+            break;
+        case WRITE_TOKEN:
+            ECRIRE();
+            break;
+        case READ_TOKEN:
+            LIRE();
+            break;
+        case END_TOKEN:
+            break;
+        default:
+            Erreur(INST_BEGIN_ERR);
+            break;
+    }
 }
 
 void AFFEC() {
@@ -546,86 +575,156 @@ void COND() {
     EXPR();
 }
 
-void RELOP() {  // TODO dak le OR b un switch sur SymCour.CODE
-    Test_Symbole(EG_TOKEN, EG_ERR);
-    Test_Symbole(DIFF_TOKEN, DIFF_ERR);
-    Test_Symbole(SUP_TOKEN, SUP_ERR);
-    Test_Symbole(INF_TOKEN, INF_ERR);
-    Test_Symbole(SUPEG_TOKEN, SUPEG_ERR);
-    Test_Symbole(INFEG_TOKEN, INFEG_ERR);
+void RELOP() {  // TODO A tester
+    switch (Sym_Cour.CODE) {
+        case EG_TOKEN:
+            Test_Symbole(EG_TOKEN, EG_ERR);
+            break;
+        case DIFF_TOKEN:
+            Test_Symbole(DIFF_TOKEN, DIFF_ERR);
+            break;
+        case SUP_TOKEN:
+            Test_Symbole(SUP_TOKEN, SUP_ERR);
+            break;
+        case INF_TOKEN:
+            Test_Symbole(INF_TOKEN, INF_ERR);
+            break;
+        case SUPEG_TOKEN:
+            Test_Symbole(SUPEG_TOKEN, SUPEG_ERR);
+            break;
+        case INFEG_TOKEN:
+            Test_Symbole(INFEG_TOKEN, INFEG_ERR);
+            break;
+        default :
+            break;
+    }
 }
 
-void EXPR() {   // TODO remplacer le 1 par une condition
+void EXPR() {   // TODO A tester
     TERM();
-    while(1){
+    while (Sym_Cour.CODE == PLUS_TOKEN || Sym_Cour.CODE == MOINS_TOKEN) {
         ADDOP();
         TERM();
     }
 }
 
-void ADDOP() {  // TODO dak le OR b un switch
-    Test_Symbole(PLUS_TOKEN,PLUS_ERR);
-    Test_Symbole(MOINS_TOKEN,MOINS_ERR);
+void ADDOP() {  // TODO A tester
+    switch (Sym_Cour.CODE) {
+        case PLUS_TOKEN:
+            Test_Symbole(PLUS_TOKEN, PLUS_ERR);
+            break;
+        case MOINS_TOKEN:
+            Test_Symbole(MOINS_TOKEN, MOINS_ERR);
+            break;
+        default :
+            break;
+    }
 }
 
-void TERM() { // TODO remplacer le 1 par une condition
+void TERM() { // TODO A tester
     FACT();
-    while(1){
+    while (Sym_Cour.CODE == MULT_TOKEN || Sym_Cour.CODE == DIV_TOKEN) {
         MULOP();
         FACT();
     }
 }
 
-void MULOP() {
-    Test_Symbole(MULT_TOKEN,MULT_ERR);
-    Test_Symbole(DIV_TOKEN,DIV_ERR);
+void MULOP() {  // TODO A tester
+    switch (Sym_Cour.CODE) {
+        case MULT_TOKEN:
+            Test_Symbole(MULT_TOKEN, MULT_ERR);
+            break;
+        case DIV_TOKEN:
+            Test_Symbole(DIV_TOKEN, DIV_ERR);
+            break;
+        default:
+            break;
+    }
 }
 
-void FACT() {   // TODO dak le OR b un switch
-    ID();
-    NUM();
-
-    Test_Symbole(PO_TOKEN,PO_ERR);
-    EXPR();
-    Test_Symbole(PF_TOKEN,PF_ERR);
+void FACT() {   // TODO A tester
+    if (Sym_Cour.CODE == ID_TOKEN) {
+        ID();
+        return;
+    }
+    if (Sym_Cour.CODE == NUM_TOKEN) {
+        NUM();
+        return;
+    }
+    if (Sym_Cour.CODE == PO_TOKEN) {
+        Test_Symbole(PO_TOKEN, PO_ERR);
+        EXPR();
+        Test_Symbole(PF_TOKEN, PF_ERR);
+        return;
+    }
 }
 
 void ID() {
     Lettre();
-
-    while(1){ // TODO remplacer 1 par une condition
-        // TODO Or -> switch
-        Lettre();
-        Chiffre();
+    while (((Sym_Cour.NOM[Car_Cour_Sym] > 64 && Sym_Cour.NOM[Car_Cour_Sym] < 91) ||
+            (Sym_Cour.NOM[Car_Cour_Sym] > 96 && Sym_Cour.NOM[Car_Cour_Sym] < 123)) ||
+           (Sym_Cour.NOM[Car_Cour_Sym] > 48 && Sym_Cour.NOM[Car_Cour_Sym] < 57)) { // TODO A tester
+        if (((Sym_Cour.NOM[Car_Cour_Sym] > 64 && Sym_Cour.NOM[Car_Cour_Sym] < 91) ||
+             (Sym_Cour.NOM[Car_Cour_Sym] > 96 && Sym_Cour.NOM[Car_Cour_Sym] < 123))) {
+            Lettre();
+        }
+        if ((Sym_Cour.NOM[Car_Cour_Sym] > 48 && Sym_Cour.NOM[Car_Cour_Sym] < 57)) {
+            Chiffre();
+        }
     }
+    Sym_Suiv();
 }
 
 void NUM() {
     Chiffre();
-    while(1){ // TODO remplacer 1 par une condition
+    while ((Sym_Cour.NOM[Car_Cour_Sym] > 48 && Sym_Cour.NOM[Car_Cour_Sym] < 57)) { // TODO A tester
         Chiffre();
+    }
+    Sym_Suiv();
+}
+
+void Chiffre() { // FIXME A tester
+    if (Sym_Cour.NOM[Car_Cour_Sym] > 48 && Sym_Cour.NOM[Car_Cour_Sym] < 57) {
+        Car_Cour_Sym++;
+        return;
     }
 }
 
-void Chiffre() { // TODO pas sur ici
-    Test_Symbole(NUM_TOKEN,NUM_ERR);
-}
-
-void Lettre() { // TODO lettre ??
-
+void Lettre() { // FIXME A tester
+    if ((Sym_Cour.NOM[Car_Cour_Sym] > 64 && Sym_Cour.NOM[Car_Cour_Sym] < 91) ||
+        (Sym_Cour.NOM[Car_Cour_Sym] > 96 && Sym_Cour.NOM[Car_Cour_Sym] < 123)) {
+        Car_Cour_Sym++;
+        return;
+    }
 }
 
 int main() {
     Ouvrir_Fichier("pascal.p");
-    /* Test de l'analyseur lexical
+
+    //------------------------------------------
+    //       Test de l'analyseur syntaxique
+    //------------------------------------------
+
+    Lire_Caractere();
+    Sym_Suiv();
+    PROGRAM();
+    if (Sym_Cour.CODE == EOF_TOKEN)
+        printf("BRAVO: Le programme est correct!");
+    else
+        printf("PAS	BRAVO: La fin de programme erronée!");
+
+
+    //------------------------------------------
+    //       Test de l'analyseur lexical
+    //------------------------------------------
+
+    /*
     Lire_Caractere();
     while (Car_Cour != EOF) {
         Sym_Suiv();
         AfficherToken(Sym_Cour);
-    }*/
-
-
-
+    }
+    */
 
 
 
