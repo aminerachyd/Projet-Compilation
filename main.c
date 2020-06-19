@@ -69,10 +69,10 @@ typedef enum {
     DIFF_ERR,
     PO_ERR,
     PF_ERR,
-    ERR_CAR_INC,
-    ERR_FICH_VID,
     CONST_VAR_BEGIN_ERR,
     INST_BEGIN_ERR,
+    ERR_CAR_INC,
+    ERR_FICH_VIDE,
 } ERREURS;
 
 // Déclaration de la structure d'une erreur
@@ -132,8 +132,40 @@ void Chiffre();
 void Lettre();
 
 // Tableau des erreurs
-Erreurs MES_ERR[100] = {{ERR_CAR_INC,  "caractère	inconnu"},
-                        {ERR_FICH_VID, "fichier	vide", "« IDF	très	long"}};
+Erreurs MES_ERR[100] = {
+        {ID_ERR, "Erreur de syntaxe ID"},
+        {NUM_ERR, "Erreur de syntaxe NUM"},
+        {PROGRAM_ERR, "Erreur de syntaxe PROGRAM"},
+        {CONST_ERR, "Erreur de syntaxe CONST"},
+        {VAR_ERR, "Erreur de syntaxe VAR"},
+        {BEGIN_ERR, "Erreur de syntaxe BEGIN"},
+        {END_ERR, "Erreur de syntaxe END"},
+        {IF_ERR, "Erreur de syntaxe IF"},
+        {THEN_ERR, "Erreur de syntaxe THEN"},
+        {WHILE_ERR, "Erreur de syntaxe WHILE"},
+        {DO_ERR, "Erreur de syntaxe DO"},
+        {READ_ERR, "Erreur de syntaxe READ"},
+        {WRITE_ERR, "Erreur de syntaxe WRITE"},
+        {PV_ERR, "Erreur de syntaxe ;"},
+        {PT_ERR, "Erreur de syntaxe ."},
+        {PLUS_ERR, "Erreur de syntaxe +"},
+        {MOINS_ERR, "Erreur de syntaxe -"},
+        {MULT_ERR, "Erreur de syntaxe *"},
+        {DIV_ERR, "Erreur de syntaxe /"},
+        {VIR_ERR, "Erreur de syntaxe ,"},
+        {AFF_ERR, "Erreur de syntaxe :="},
+        {EG_ERR, "Erreur de syntaxe ="},
+        {INF_ERR, "Erreur de syntaxe <"},
+        {INFEG_ERR, "Erreur de syntaxe <="},
+        {SUP_ERR, "Erreur de syntaxe >"},
+        {SUPEG_ERR, "Erreur de syntaxe >="},
+        {DIFF_ERR, "Erreur de syntaxe <>"},
+        {PO_ERR, "Erreur de syntaxe ("},
+        {PF_ERR, "Erreur de syntaxe )"},
+        {CONST_VAR_BEGIN_ERR, "Erreur dans le token CONST dans BEGIN"},
+        {INST_BEGIN_ERR, "Erreur dans le token BEGIN"},
+        {ERR_CAR_INC, "caractère	inconnu"},
+        {ERR_FICH_VIDE, "fichier	vide", "« IDF	très	long"}};
 
 // Tableau des enumérations
 // Ce tableau sert uniquement à donner un équivalent en string des enumérations en haut
@@ -186,7 +218,7 @@ void Erreur(ERREURS ERR) {
 
 // Vérification si Car_Cour est une lettre
 int Car_is_letter() {
-    return (Car_Cour < 91 && Car_Cour > 64) || (Car_Cour > 96 && Car_Cour < 122);
+    return (Car_Cour < 91 && Car_Cour > 64) || (Car_Cour > 96 && Car_Cour < 123);
 }
 
 // Vérification si Car_Cour est un nombre
@@ -309,7 +341,7 @@ void Lire_special() {
             return;
         }
 
-        if (Car_Cour < 33 || !Car_is_special()) {
+        if (Car_Cour < 33 || Car_is_letter() || Car_is_number()) {
             // Si le caractère n'est pas un spécial, on s'arrete
             break;
         }
