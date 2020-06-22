@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 // Déclaration des classes lexicales
 typedef enum {
@@ -262,7 +263,7 @@ void Lire_mot() {
     Sym_Cour.CODE = NULL_TOKEN;
     // On remplit le nom du mot
     for (int i = 0; i < 20; i++) {
-        Sym_Cour.NOM[i] = Car_Cour;
+        Sym_Cour.NOM[i] = tolower(Car_Cour);
         // Passage au prochain caractère
         Car_Cour = fgetc(file);
         if (Car_Cour < 33 || Car_is_special()) {
